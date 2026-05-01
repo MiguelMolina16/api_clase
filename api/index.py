@@ -7,14 +7,14 @@ import plotly.graph_objs as go
 stock_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA']
 
 app = Dash(__name__)
-server = app.server  # 👈 clave para Vercel
+server = app.server
 
 app.layout = html.Div([
     html.H1("Dashboard de Acciones (Yahoo Finance)", style={'textAlign': 'center'}),
     
     dcc.Dropdown(
         id='stock-dropdown',
-        options=[{'label': symbol, 'value': symbol} for symbol in stock_symbols],
+        options=[{'label': s, 'value': s} for s in stock_symbols],
         value=['AAPL'],
         multi=True
     ),
@@ -35,11 +35,9 @@ def update_graph(selected_stocks):
         if data.empty:
             continue
         
-        data.columns = [col[0] if isinstance(col, tuple) else col for col in data.columns]
-        
         traces.append(go.Scatter(
             x=data.index,
-            y=data['Close'].values,
+            y=data['Close'],
             mode='lines',
             name=stock
         ))
@@ -48,12 +46,3 @@ def update_graph(selected_stocks):
         'data': traces,
         'layout': go.Layout(title='Precios de cierre diarios')
     }
-
-from http.server import BaseHTTPRequestHandler
-
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"API funcionando en Vercel")
