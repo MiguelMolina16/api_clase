@@ -46,3 +46,5 @@ def update_graph(selected_stocks):
         'data': traces,
         'layout': go.Layout(title='Precios de cierre diarios')
     }
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000, debug=False)
