@@ -1,16 +1,57 @@
-from http.server import BaseHTTPRequestHandler
+import os
+import json
+os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
+os.environ['YFINANCE_CACHE_DIR'] = '/tmp/yfinance'
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(str("""
-        <html>
-            <body>
-                <h1>Hola Mundo desde Vercel!</h1>
-                <p>Tu API Python está funcionando correctamente.</p>
-            </body>
-        </html>
-        """).encode())
-        return
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objs as go
+import yfinance as yf
+from flask import Flask
+
+# Crear Flask server
+server = Flask(__name__)
+
+# Dash app montada en Flask
+app = Dash(__name__, server=server, url_base_pathname='/')
+
+stock_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+
+app.layout = html.Div([
+    html.H1("Dashboard de Acciones", style={'textAlign': 'center'}),
+    dcc.Dropdown(
+        id='stock-dropdown',
+        options=[{'label': s, 'value': s} for s in stock_symbols],
+        value=['AAPL'],
+        multi=True
+    ),
+    dcc.Graph(id='stock-graph')
+])
+
+@app.callback(
+    Output('stock-graph', 'figure'),
+    Input('stock-dropdown', 'value')
+)
+def update_graph(selected_stocks):
+    traces = []
+    for stock in selected_stocks:
+        try:
+            data = yf.download(stock, period='1mo', interval='1d')  # Reducido a 1 mes
+            if not data.empty:
+                traces.append(go.Scatter(
+                    x=data.index,
+                    y=data['Close'],
+                    mode='lines',
+                    name=stock
+                ))
+        except:
+            continue
+    
+    return {
+        'data': traces,
+        'layout': go.Layout(title='Precios de cierre')
+    }
+
+# Handler para Vercel
+def handler(request, context):
+    return server(request.environ, lambda s, h: None)
