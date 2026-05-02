@@ -2,6 +2,9 @@ import yfinance as yf
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
+import os
+
+os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
 
 stock_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA']
 
