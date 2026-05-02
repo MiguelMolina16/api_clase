@@ -1,24 +1,23 @@
 import os
-import json
+
+# Configuración para entorno serverless
 os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib'
 os.environ['YFINANCE_CACHE_DIR'] = '/tmp/yfinance'
 
+import yfinance as yf
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-import yfinance as yf
-from flask import Flask
 
-# Crear Flask server
-server = Flask(__name__)
+stock_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NFLX', 'NVDA']
 
-# Dash app montada en Flask
-app = Dash(__name__, server=server, url_base_pathname='/')
+app = Dash(__name__)
 
-stock_symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA']
+# IMPORTANTE: Para Render usamos 'server' no 'app.server'
+server = app.server
 
 app.layout = html.Div([
-    html.H1("Dashboard de Acciones", style={'textAlign': 'center'}),
+    html.H1("Dashboard de Acciones (Yahoo Finance)", style={'textAlign': 'center'}),
     dcc.Dropdown(
         id='stock-dropdown',
         options=[{'label': s, 'value': s} for s in stock_symbols],
@@ -36,7 +35,7 @@ def update_graph(selected_stocks):
     traces = []
     for stock in selected_stocks:
         try:
-            data = yf.download(stock, period='1mo', interval='1d')  # Reducido a 1 mes
+            data = yf.download(stock, period='1y', interval='1d')
             if not data.empty:
                 traces.append(go.Scatter(
                     x=data.index,
@@ -44,14 +43,17 @@ def update_graph(selected_stocks):
                     mode='lines',
                     name=stock
                 ))
-        except:
-            continue
+        except Exception as e:
+            print(f"Error con {stock}: {e}")
     
     return {
         'data': traces,
-        'layout': go.Layout(title='Precios de cierre')
+        'layout': go.Layout(
+            title='Precios de cierre diarios',
+            xaxis={'title': 'Fecha'},
+            yaxis={'title': 'Precio (USD)'}
+        )
     }
 
-# Handler para Vercel
-def handler(request, context):
-    return server(request.environ, lambda s, h: None)
+if __name__ == '__main__':
+    app.run_server(debug=True)
